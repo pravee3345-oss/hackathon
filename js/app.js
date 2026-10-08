@@ -8,7 +8,7 @@ const LANGS = {
     loginTitle:"Welcome Back", loginText:"Sign in to continue to your AccessEase dashboard.", username:"Username", password:"Password", signIn:"Sign In", noAccount:"Don't have an account?", createAccount:"Create an account",
     registerTitle:"Create Your Account", registerText:"Join AccessEase and personalize your accessibility experience.", fullName:"Full Name", age:"Age", email:"Email", confirmPassword:"Confirm Password", preferredLanguage:"Preferred Language", create:"Create Account", haveAccount:"Already have an account?",
     dashboard:"Dashboard", welcome:"Welcome", assistantStatus:"AI Assistant", enabled:"Enabled", preferences:"Accessibility Preferences", logout:"Logout",
-    settingsTitle:"Accessibility Settings", settingsText:"Choose how you want AccessEase to assist you.", save:"Save Settings",
+    settingsTitle:"Accessibility Settings", settingsText:"Choose how you want AccessEase to assist you.", largeText:"Large text", largeTextDesc:"Increase text size across AccessEase.", highContrast:"High contrast", highContrastDesc:"Use stronger colors for improved contrast.", voiceOutput:"Voice output", voiceOutputDesc:"Speak the assistant's replies aloud.", save:"Save Settings",
     aiGreeting:"Hi! I'm your AccessEase AI assistant. How can I help?", typeMessage:"Type a message...", send:"Send"
   },
   ta: {
@@ -20,7 +20,7 @@ const LANGS = {
     loginTitle:"மீண்டும் வரவேற்கிறோம்", loginText:"உங்கள் AccessEase dashboard-க்கு செல்ல உள்நுழையுங்கள்.", username:"பயனர் பெயர்", password:"கடவுச்சொல்", signIn:"உள்நுழைக", noAccount:"கணக்கு இல்லையா?", createAccount:"கணக்கு உருவாக்கவும்",
     registerTitle:"உங்கள் கணக்கை உருவாக்குங்கள்", registerText:"AccessEase-ல் சேர்ந்து உங்கள் accessibility அனுபவத்தை அமைக்கவும்.", fullName:"முழு பெயர்", age:"வயது", email:"மின்னஞ்சல்", confirmPassword:"கடவுச்சொல்லை உறுதிப்படுத்தவும்", preferredLanguage:"விருப்ப மொழி", create:"கணக்கு உருவாக்கவும்", haveAccount:"ஏற்கனவே கணக்கு உள்ளதா?",
     dashboard:"Dashboard", welcome:"வரவேற்கிறோம்", assistantStatus:"AI உதவியாளர்", enabled:"இயக்கத்தில்", preferences:"Accessibility விருப்பங்கள்", logout:"வெளியேறு",
-    settingsTitle:"Accessibility அமைப்புகள்", settingsText:"AccessEase உங்களுக்கு எவ்வாறு உதவ வேண்டும் என்பதை தேர்வு செய்யுங்கள்.", save:"அமைப்புகளை சேமி",
+    settingsTitle:"Accessibility அமைப்புகள்", settingsText:"AccessEase உங்களுக்கு எவ்வாறு உதவ வேண்டும் என்பதை தேர்வு செய்யுங்கள்.", largeText:"பெரிய எழுத்து", largeTextDesc:"AccessEase முழுவதும் எழுத்தின் அளவை அதிகரிக்கவும்.", highContrast:"அதிக நிற வேறுபாடு", highContrastDesc:"தெளிவுக்காக அதிக வேறுபாடுள்ள நிறங்களைப் பயன்படுத்தவும்.", voiceOutput:"குரல் வெளியீடு", voiceOutputDesc:"உதவியாளரின் பதில்களை சத்தமாகச் சொல்லவும்.", save:"அமைப்புகளை சேமி",
     aiGreeting:"வணக்கம்! நான் உங்கள் AccessEase AI உதவியாளர். எப்படி உதவலாம்?", typeMessage:"செய்தியை உள்ளிடுங்கள்...", send:"அனுப்பு"
   },
   hi: {
@@ -32,7 +32,7 @@ const LANGS = {
     loginTitle:"वापसी पर स्वागत है", loginText:"अपने AccessEase डैशबोर्ड पर जाने के लिए साइन इन करें.", username:"यूज़रनेम", password:"पासवर्ड", signIn:"साइन इन", noAccount:"खाता नहीं है?", createAccount:"खाता बनाएं",
     registerTitle:"अपना खाता बनाएं", registerText:"AccessEase से जुड़ें और अपने अनुभव को व्यक्तिगत बनाएं.", fullName:"पूरा नाम", age:"आयु", email:"ईमेल", confirmPassword:"पासवर्ड की पुष्टि", preferredLanguage:"पसंदीदा भाषा", create:"खाता बनाएं", haveAccount:"पहले से खाता है?",
     dashboard:"डैशबोर्ड", welcome:"स्वागत", assistantStatus:"AI असिस्टेंट", enabled:"सक्रिय", preferences:"Accessibility प्राथमिकताएं", logout:"लॉगआउट",
-    settingsTitle:"Accessibility सेटिंग्स", settingsText:"चुनें कि AccessEase आपकी कैसे सहायता करे.", save:"सेटिंग्स सेव करें",
+    settingsTitle:"Accessibility सेटिंग्स", settingsText:"चुनें कि AccessEase आपकी कैसे सहायता करे.", largeText:"बड़ा टेक्स्ट", largeTextDesc:"AccessEase में टेक्स्ट का आकार बढ़ाएं.", highContrast:"हाई कंट्रास्ट", highContrastDesc:"बेहतर स्पष्टता के लिए अधिक कंट्रास्ट वाले रंग उपयोग करें.", voiceOutput:"वॉइस आउटपुट", voiceOutputDesc:"असिस्टेंट के जवाब ज़ोर से सुनें.", save:"सेटिंग्स सेव करें",
     aiGreeting:"नमस्ते! मैं आपका AccessEase AI असिस्टेंट हूँ। मैं कैसे मदद करूँ?", typeMessage:"संदेश लिखें...", send:"भेजें"
   },
   es: {
@@ -78,9 +78,27 @@ const SUPPORTED = [
   ["bn","বাংলা"],["mr","मराठी"],["gu","ગુજરાતી"],["pa","ਪੰਜਾਬੀ"],["es","Español"],["fr","Français"],
   ["de","Deutsch"],["zh","中文"],["ja","日本語"],["ar","العربية"]
 ];
+const SPEECH_LOCALES = {
+  en:"en-US", ta:"ta-IN", hi:"hi-IN", te:"te-IN", kn:"kn-IN", ml:"ml-IN",
+  bn:"bn-IN", mr:"mr-IN", gu:"gu-IN", pa:"pa-IN", es:"es-ES", fr:"fr-FR",
+  de:"de-DE", zh:"zh-CN", ja:"ja-JP", ar:"ar-SA"
+};
 
 function getLang() { return localStorage.getItem("accessEaseLanguage") || "en"; }
-function setLang(lang) { localStorage.setItem("accessEaseLanguage", lang); location.reload(); }
+function backendLanguage(language = getLang()) { return language === "ta" ? "ta" : "en"; }
+async function setLang(lang) {
+  localStorage.setItem("accessEaseLanguage", lang);
+  if (API_CONFIG.USE_BACKEND && ["en", "ta"].includes(lang) && localStorage.getItem("accessEaseToken")) {
+    try {
+      const result = await API.updateSettings({ language: backendLanguage(lang) });
+      if (!result.settings) throw new Error("The server did not return the updated settings.");
+      localStorage.setItem("accessEaseSettings", JSON.stringify(result.settings));
+    } catch (err) {
+      showToast(`Language changed here, but could not be saved to your account: ${err.message}`);
+    }
+  }
+  location.reload();
+}
 function T(key) {
   const lang = getLang();
   return (LANGS[lang] && LANGS[lang][key]) || LANGS.en[key] || key;
@@ -89,6 +107,32 @@ function T(key) {
 function currentUser() {
   try { return JSON.parse(localStorage.getItem("accessEaseUser") || "null"); }
   catch { return null; }
+}
+
+function logout() {
+  localStorage.removeItem("accessEaseUser");
+  localStorage.removeItem("accessEaseToken");
+  localStorage.removeItem("accessEaseSettings");
+  window.postMessage({ type: "ACCESSEASE_SESSION", token: null }, location.origin);
+  location.href = "index.html";
+}
+
+function syncBrowserExtensionSession(token = localStorage.getItem("accessEaseToken"), settings = defaultSettings()) {
+  window.postMessage({ type: "ACCESSEASE_SESSION", token, settings }, location.origin);
+}
+
+function defaultSettings() {
+  const defaults = { language: "en", largeText: false, highContrast: false, voiceOutput: false };
+  try {
+    return { ...defaults, ...JSON.parse(localStorage.getItem("accessEaseSettings") || "{}") };
+  } catch {
+    return defaults;
+  }
+}
+
+function applyAccessibilitySettings(settings) {
+  document.body.classList.toggle("large-text", !!settings.largeText);
+  document.body.classList.toggle("high-contrast", !!settings.highContrast);
 }
 
 function showToast(message) {
@@ -138,7 +182,8 @@ function aiHTML() {
       <div class="ai-messages" id="aiMessages"><div class="ai-msg bot">${T("aiGreeting")}</div></div>
       <form class="ai-input" id="aiForm">
         <input id="aiInput" placeholder="${T("typeMessage")}" autocomplete="off">
-        <button title="${T("send")}">➤</button>
+        <button type="button" id="aiMic" class="ai-mic" aria-label="Speak to assistant" aria-pressed="false" title="Speak to assistant">🎙️</button>
+        <button type="submit" title="${T("send")}">➤</button>
       </form>
     </div>
     <button class="ai-toggle" id="aiToggle" aria-label="AI Assistant">🤖</button>
@@ -147,12 +192,11 @@ function aiHTML() {
 
 function layout(content, page) {
   document.getElementById("app").innerHTML = navHTML(page) + `<main>${content}</main>` + footerHTML() + aiHTML();
+  applyAccessibilitySettings(defaultSettings());
+  syncBrowserExtensionSession();
   document.getElementById("languageSelect")?.addEventListener("change", e => setLang(e.target.value));
   document.getElementById("menuBtn")?.addEventListener("click", () => document.getElementById("navLinks").classList.toggle("show"));
-  document.getElementById("logoutBtn")?.addEventListener("click", () => {
-    localStorage.removeItem("accessEaseUser");
-    location.href = "index.html";
-  });
+  document.getElementById("logoutBtn")?.addEventListener("click", logout);
   initAI();
 }
 
@@ -198,7 +242,7 @@ function loginPage() {
     <div class="form-wrap"><div class="form-card">
       <h1>${T("loginTitle")}</h1><p>${T("loginText")}</p>
       <form id="loginForm">
-        <div class="form-group"><label>${T("username")}</label><input id="loginUsername" required autocomplete="username"></div>
+        <div class="form-group"><label>${T("email")}</label><input id="loginEmail" type="email" required autocomplete="email"></div>
         <div class="form-group"><label>${T("password")}</label><input id="loginPassword" type="password" required autocomplete="current-password"></div>
         <button class="btn" type="submit">${T("signIn")}</button>
       </form>
@@ -207,16 +251,22 @@ function loginPage() {
   </section>`, "login");
   document.getElementById("loginForm").addEventListener("submit", async e => {
     e.preventDefault();
-    const username = document.getElementById("loginUsername").value.trim();
+    const email = document.getElementById("loginEmail").value.trim();
     const password = document.getElementById("loginPassword").value;
     try {
       if (API_CONFIG.USE_BACKEND) {
-        const result = await API.login({username,password});
-        const user = result.user || result.data?.user || {username};
-        localStorage.setItem("accessEaseUser", JSON.stringify(user));
+        const result = await API.login({ email, password });
+        if (!result.token || !result.user) throw new Error("The server did not return a login token and user.");
+        localStorage.setItem("accessEaseToken", result.token);
+        localStorage.setItem("accessEaseUser", JSON.stringify(result.user));
+        syncBrowserExtensionSession(result.token);
+        if (result.settings) {
+          localStorage.setItem("accessEaseSettings", JSON.stringify(result.settings));
+          if (["en", "ta"].includes(getLang())) localStorage.setItem("accessEaseLanguage", result.settings.language);
+        }
       } else {
         const saved = JSON.parse(localStorage.getItem("accessEaseDemoUser") || "null");
-        if (!saved || saved.username !== username || saved.password !== password) {
+        if (!saved || saved.email !== email || saved.password !== password) {
           showToast("Demo: register first or use your registered details.");
           return;
         }
@@ -234,10 +284,8 @@ function registerPage() {
       <h1>${T("registerTitle")}</h1><p>${T("registerText")}</p>
       <form id="registerForm">
         <div class="form-group"><label>${T("fullName")}</label><input id="regName" required></div>
-        <div class="form-group"><label>${T("age")}</label><input id="regAge" type="number" min="1" max="120" required></div>
         <div class="form-group"><label>${T("email")}</label><input id="regEmail" type="email" required></div>
-        <div class="form-group"><label>${T("username")}</label><input id="regUsername" required autocomplete="username"></div>
-        <div class="form-group"><label>${T("password")}</label><input id="regPassword" type="password" minlength="6" required autocomplete="new-password"></div>
+        <div class="form-group"><label>${T("password")}</label><input id="regPassword" type="password" minlength="8" required autocomplete="new-password"></div>
         <div class="form-group"><label>${T("confirmPassword")}</label><input id="regConfirm" type="password" required autocomplete="new-password"></div>
         <div class="form-group"><label>${T("preferredLanguage")}</label><select id="regLanguage">${SUPPORTED.map(([c,n])=>`<option value="${c}" ${getLang()===c?"selected":""}>${n}</option>`).join("")}</select></div>
         <button class="btn" type="submit">${T("create")}</button>
@@ -252,11 +300,9 @@ function registerPage() {
     if (password !== confirm) { showToast("Passwords do not match."); return; }
     const payload = {
       name: document.getElementById("regName").value.trim(),
-      age: Number(document.getElementById("regAge").value),
       email: document.getElementById("regEmail").value.trim(),
-      username: document.getElementById("regUsername").value.trim(),
       password,
-      language: document.getElementById("regLanguage").value
+      language: backendLanguage(document.getElementById("regLanguage").value)
     };
     try {
       if (API_CONFIG.USE_BACKEND) {
@@ -286,66 +332,281 @@ function dashboardPage() {
       <a class="btn secondary" href="settings.html">⚙ ${T("settings")}</a>
     </div>
   </section>`, "dashboard");
-  document.getElementById("dashLogout").addEventListener("click", () => { localStorage.removeItem("accessEaseUser"); location.href="index.html"; });
+  document.getElementById("dashLogout").addEventListener("click", logout);
 }
 
-function defaultSettings() {
-  return JSON.parse(localStorage.getItem("accessEaseSettings") || '{"voice":true,"text":true,"motion":false}');
-}
-
-function settingsPage() {
-  const s = defaultSettings();
+function renderSettingsPage(s) {
   layout(`
   <section class="page container">
     <div class="form-wrap" style="max-width:700px"><div class="form-card">
       <h1>${T("settingsTitle")}</h1><p>${T("settingsText")}</p>
-      <div class="setting-row"><div class="setting-info"><h3>🎙️ ${T("voice")}</h3><p>${T("voiceDesc")}</p></div><label class="switch"><input id="voiceSetting" type="checkbox" ${s.voice?"checked":""}><span class="slider"></span></label></div>
-      <div class="setting-row"><div class="setting-info"><h3>💬 ${T("text")}</h3><p>${T("textDesc")}</p></div><label class="switch"><input id="textSetting" type="checkbox" ${s.text?"checked":""}><span class="slider"></span></label></div>
-      <div class="setting-row"><div class="setting-info"><h3>👋 ${T("motion")}</h3><p>${T("motionDesc")}</p></div><label class="switch"><input id="motionSetting" type="checkbox" ${s.motion?"checked":""}><span class="slider"></span></label></div>
+      <div class="setting-row"><div class="setting-info"><h3>🔎 ${T("largeText")}</h3><p>${T("largeTextDesc")}</p></div><label class="switch"><input id="largeTextSetting" type="checkbox" ${s.largeText?"checked":""}><span class="slider"></span></label></div>
+      <div class="setting-row"><div class="setting-info"><h3>🎨 ${T("highContrast")}</h3><p>${T("highContrastDesc")}</p></div><label class="switch"><input id="highContrastSetting" type="checkbox" ${s.highContrast?"checked":""}><span class="slider"></span></label></div>
+      <div class="setting-row"><div class="setting-info"><h3>🔊 ${T("voiceOutput")}</h3><p>${T("voiceOutputDesc")}</p></div><label class="switch"><input id="voiceOutputSetting" type="checkbox" ${s.voiceOutput?"checked":""}><span class="slider"></span></label></div>
       <button class="btn" id="saveSettings" style="margin-top:22px">${T("save")}</button>
     </div></div>
   </section>`, "settings");
   document.getElementById("saveSettings").addEventListener("click", async () => {
     const settings = {
-      voice: document.getElementById("voiceSetting").checked,
-      text: document.getElementById("textSetting").checked,
-      motion: document.getElementById("motionSetting").checked
+      language: s.language || backendLanguage(),
+      largeText: document.getElementById("largeTextSetting").checked,
+      highContrast: document.getElementById("highContrastSetting").checked,
+      voiceOutput: document.getElementById("voiceOutputSetting").checked
     };
-    localStorage.setItem("accessEaseSettings", JSON.stringify(settings));
-    try { if (API_CONFIG.USE_BACKEND) await API.updateSettings(settings); } catch(err) { showToast(err.message); return; }
+    try {
+      const result = API_CONFIG.USE_BACKEND ? await API.updateSettings(settings) : { settings };
+      if (!result.settings) throw new Error("The server did not return the updated settings.");
+      localStorage.setItem("accessEaseSettings", JSON.stringify(result.settings));
+      applyAccessibilitySettings(result.settings);
+      syncBrowserExtensionSession(localStorage.getItem("accessEaseToken"), result.settings);
+    } catch(err) {
+      showToast(err.message);
+      return;
+    }
     showToast("Settings saved successfully!");
   });
+}
+
+async function settingsPage() {
+  if (API_CONFIG.USE_BACKEND && !localStorage.getItem("accessEaseToken")) {
+    location.href = "login.html";
+    return;
+  }
+  let settings = defaultSettings();
+  if (API_CONFIG.USE_BACKEND) {
+    try {
+      const result = await API.getSettings();
+      if (!result.settings) throw new Error("The server did not return your settings.");
+      settings = result.settings;
+      localStorage.setItem("accessEaseSettings", JSON.stringify(settings));
+    } catch (err) {
+      showToast(`Could not load your account settings: ${err.message}`);
+      return;
+    }
+  }
+  renderSettingsPage(settings);
 }
 
 function initAI() {
   const toggle = document.getElementById("aiToggle"), panel = document.getElementById("aiPanel");
   const close = document.getElementById("aiClose"), form = document.getElementById("aiForm");
   const input = document.getElementById("aiInput"), messages = document.getElementById("aiMessages");
+  const mic = document.getElementById("aiMic");
+  const sessionId = sessionStorage.getItem("accessEaseAssistantSession") || crypto.randomUUID();
+  sessionStorage.setItem("accessEaseAssistantSession", sessionId);
+  let pendingAction = null;
+  let activeRecognition = null;
+  let submitting = false;
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  function appendMessage(text, sender = "bot") {
+    const message = document.createElement("div");
+    message.className = `ai-msg ${sender}`;
+    message.textContent = text;
+    messages.appendChild(message);
+    messages.scrollTop = messages.scrollHeight;
+    return message;
+  }
+
+  function appendAssistantResult(result, openedWindow = null) {
+    const reply = result.reply || result.message;
+    if (reply) appendMessage(reply);
+    if (result.status === "needs_confirmation" && result.action) {
+      pendingAction = result.action;
+      const controls = document.createElement("div");
+      controls.className = "ai-confirm";
+      controls.innerHTML = `<button type="button" data-confirm="yes">Yes</button><button type="button" data-confirm="no">No</button>`;
+      messages.appendChild(controls);
+    }
+    if (result.openUrl) {
+      try {
+        const url = new URL(result.openUrl);
+        const allowedHosts = ["youtube.com", "google.com", "wikipedia.org"];
+        const allowedHost = allowedHosts.some(host => url.hostname === host || url.hostname.endsWith(`.${host}`));
+        if (url.protocol !== "https:" || !allowedHost) throw new Error("Unapproved destination.");
+        if (openedWindow && !openedWindow.closed) {
+          openedWindow.opener = null;
+          openedWindow.location.assign(url.href);
+        }
+        const link = document.createElement("a");
+        link.href = url.href;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = `Open ${url.hostname.replace(/^www\./, "")}`;
+        link.className = "ai-open-link";
+        messages.appendChild(link);
+        appendMessage("If the new tab doesn't appear, select the link above.");
+      } catch {
+        openedWindow?.close();
+        appendMessage("The assistant returned an invalid link.");
+      }
+    } else {
+      openedWindow?.close();
+    }
+    messages.scrollTop = messages.scrollHeight;
+    if (defaultSettings().voiceOutput && reply) {
+      if (!("speechSynthesis" in window)) {
+        appendMessage("Voice output is not supported by this browser. You can still read the reply here.");
+      } else {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(reply);
+        utterance.lang = SPEECH_LOCALES[getLang()] || "en-US";
+        utterance.onerror = event => {
+          if (event.error !== "canceled" && event.error !== "interrupted") {
+            appendMessage(`Voice output failed: ${event.error}. You can still read the reply here.`);
+          }
+        };
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+  }
+
   toggle?.addEventListener("click", () => panel.classList.toggle("open"));
   close?.addEventListener("click", () => panel.classList.remove("open"));
-  form?.addEventListener("submit", async e => {
-    e.preventDefault();
-    const message = input.value.trim(); if (!message) return;
-    messages.insertAdjacentHTML("beforeend", `<div class="ai-msg user">${escapeHTML(message)}</div>`);
-    input.value = "";
-    try {
-      let reply;
-      if (API_CONFIG.USE_BACKEND) {
-        const result = await API.aiChat(message);
-        reply = result.reply || result.message || result.data?.reply || "I received your message.";
-      } else {
-        reply = "I’m ready to help! Your friend’s AI API can be connected in js/config.js when the backend is ready.";
+  if (!SpeechRecognition) {
+    mic.disabled = true;
+    mic.title = "Voice input is not supported by this browser. Type your message instead.";
+    mic.setAttribute("aria-label", mic.title);
+    appendMessage(mic.title);
+  } else {
+    mic.addEventListener("click", () => {
+      if (activeRecognition) {
+        try {
+          activeRecognition.stop();
+        } catch (err) {
+          appendMessage(`Could not finish voice capture: ${err.message}. Try selecting the microphone again.`);
+        }
+        return;
       }
-      messages.insertAdjacentHTML("beforeend", `<div class="ai-msg bot">${escapeHTML(reply)}</div>`);
-      messages.scrollTop = messages.scrollHeight;
-    } catch(err) {
-      messages.insertAdjacentHTML("beforeend", `<div class="ai-msg bot">Sorry, I couldn't reach the AI service.</div>`);
+      const recognition = new SpeechRecognition();
+      recognition.lang = SPEECH_LOCALES[getLang()] || "en-US";
+      recognition.interimResults = true;
+      recognition.continuous = false;
+      recognition.maxAlternatives = 1;
+      activeRecognition = recognition;
+      mic.classList.add("listening");
+      mic.setAttribute("aria-pressed", "true");
+      mic.title = "Listening — select to finish";
+      mic.setAttribute("aria-label", mic.title);
+      const finalSegments = new Map();
+      let interimTranscript = "";
+      let reportedRecognitionError = false;
+      recognition.onresult = event => {
+        interimTranscript = "";
+        for (let index = 0; index < event.results.length; index += 1) {
+          const result = event.results[index];
+          const transcript = result[0]?.transcript?.trim();
+          if (!transcript) continue;
+          if (result.isFinal) {
+            finalSegments.set(index, transcript);
+          } else {
+            interimTranscript = `${interimTranscript} ${transcript}`.trim();
+          }
+        }
+        input.value = `${[...finalSegments.entries()].sort(([a], [b]) => a - b).map(([, text]) => text).join(" ")} ${interimTranscript}`.trim();
+      };
+      recognition.onerror = event => {
+        if (event.error === "aborted") return;
+        reportedRecognitionError = true;
+        if (event.error === "no-speech") {
+          appendMessage("I couldn't detect speech. Check that the correct microphone is selected and not muted, allow microphone access for the AccessEase site, and match the AccessEase language to your speech. Try again or type your message.");
+          return;
+        }
+        const messagesByError = {
+          "not-allowed": "Microphone access was blocked. Allow microphone access for the AccessEase site in your browser's site settings, then reload and try again.",
+          "service-not-allowed": "Speech recognition is blocked by the browser or unavailable in this context. Try Chrome or Edge on a secure page.",
+          "audio-capture": "No microphone is available. Connect or enable a microphone, then try again.",
+          "network": "Speech recognition couldn't connect to the browser's recognition service. Check your internet connection and try again."
+        };
+        const message = messagesByError[event.error];
+        if (message) {
+          appendMessage(message);
+        } else {
+          appendMessage(`Voice input failed: ${event.error}. You can type your message instead.`);
+        }
+      };
+      recognition.onstart = () => {
+        mic.title = "Listening — select to finish";
+        mic.setAttribute("aria-label", mic.title);
+      };
+      recognition.onend = () => {
+        const spoken = `${[...finalSegments.entries()].sort(([a], [b]) => a - b).map(([, text]) => text).join(" ")} ${interimTranscript}`.trim();
+        activeRecognition = null;
+        mic.classList.remove("listening");
+        mic.setAttribute("aria-pressed", "false");
+        mic.title = "Speak to assistant";
+        mic.setAttribute("aria-label", mic.title);
+        if (!spoken) {
+          if (!reportedRecognitionError) {
+            appendMessage("I didn't receive a speech transcript. Check that the correct microphone is selected, allow microphone access for this site, and match the AccessEase language to your speech. Try again or type your message.");
+          }
+          return;
+        }
+        input.value = spoken;
+      };
+      try {
+        recognition.start();
+      } catch (err) {
+        activeRecognition = null;
+        mic.classList.remove("listening");
+        mic.setAttribute("aria-pressed", "false");
+        mic.title = "Speak to assistant";
+        mic.setAttribute("aria-label", mic.title);
+        appendMessage(`Could not start voice input: ${err.message}`);
+      }
+    });
+  }
+  messages?.addEventListener("click", async e => {
+    const button = e.target.closest("[data-confirm]");
+    if (!button || !pendingAction) return;
+    const controls = button.parentElement;
+    controls.querySelectorAll("button").forEach(item => item.disabled = true);
+    const confirm = button.dataset.confirm === "yes";
+    const openedWindow = confirm ? window.open("about:blank", "_blank") : null;
+    appendMessage(confirm ? "Yes" : "No", "user");
+    try {
+      const result = await API.confirmAIAction({
+        confirm,
+        action: pendingAction,
+        language: backendLanguage(),
+        sessionId
+      });
+      pendingAction = null;
+      controls.remove();
+      appendAssistantResult(result, openedWindow);
+    } catch (err) {
+      openedWindow?.close();
+      controls.querySelectorAll("button").forEach(item => item.disabled = false);
+      appendMessage(`Sorry, I couldn't complete that request: ${err.message}`);
     }
   });
-}
-
-function escapeHTML(value) {
-  return value.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  form?.addEventListener("submit", async e => {
+    e.preventDefault();
+    const message = input.value.trim();
+    if (!message || submitting) return;
+    submitting = true;
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (submitButton) submitButton.disabled = true;
+    appendMessage(message, "user");
+    input.value = "";
+    try {
+      if (API_CONFIG.USE_BACKEND) {
+        const result = await API.aiChat({
+          message,
+          language: backendLanguage(),
+          sessionId
+        });
+        appendAssistantResult(result);
+      } else {
+        appendMessage("I’m ready to help! Connect the backend in js/config.js to use the AI assistant.");
+      }
+    } catch(err) {
+      appendMessage(`Sorry, I couldn't reach the AI service: ${err.message}`);
+    } finally {
+      submitting = false;
+      if (submitButton) submitButton.disabled = false;
+    }
+  });
 }
 
 const page = document.body.dataset.page;

@@ -1,6 +1,5 @@
-// Backend connection settings.
-// Change ONLY this file when your friend's backend is ready.
+// Public backend URL only. Keep API keys in the backend server environment.
 const API_CONFIG = {
-  BASE_URL: "http://localhost:5000/api",
-  USE_BACKEND: false
+  BASE_URL: "http://localhost:5001/api",
+  USE_BACKEND: true
 };
