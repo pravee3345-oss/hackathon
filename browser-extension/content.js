@@ -98,6 +98,10 @@
   const panel = $("#panel");
   const messages = $("#messages");
   const input = $("#input");
+  ["keydown", "keyup", "keypress"].forEach(type => {
+    root.addEventListener(type, event => event.stopPropagation());
+    input.addEventListener(type, event => event.stopPropagation());
+  });
   const mic = $("#mic");
   const sessionId = crypto.randomUUID();
   let pendingAction = null;
@@ -148,11 +152,26 @@
     return null;
   }
 
+  function extensionErrorMessage(error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return /Extension context invalidated/i.test(message)
+      ? "AccessEase was updated. Please refresh this page."
+      : message;
+  }
+
+  function sendRuntimeMessage(message, callback) {
+    try {
+      chrome.runtime.sendMessage(message, callback);
+    } catch (error) {
+      callback({ error: extensionErrorMessage(error) });
+    }
+  }
+
   function sendToBackend(type, payload) {
     return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage({ type, payload }, response => {
-        if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
-        if (response?.error) return reject(new Error(response.error));
+      sendRuntimeMessage({ type, payload }, response => {
+        if (chrome.runtime.lastError) return reject(new Error(extensionErrorMessage(chrome.runtime.lastError.message)));
+        if (response?.error) return reject(new Error(extensionErrorMessage(response.error)));
         resolve(response.result);
       });
     });
@@ -160,9 +179,9 @@
 
   function sendTabAction(type, payload) {
     return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage({ type, ...payload }, response => {
-        if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
-        if (response?.error) return reject(new Error(response.error));
+      sendRuntimeMessage({ type, ...payload }, response => {
+        if (chrome.runtime.lastError) return reject(new Error(extensionErrorMessage(chrome.runtime.lastError.message)));
+        if (response?.error) return reject(new Error(extensionErrorMessage(response.error)));
         if (!response?.ok) return reject(new Error("The browser did not confirm the tab operation."));
         resolve();
       });
@@ -299,11 +318,11 @@
 
   function closeCurrentTab() {
     return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage({ type: "closeCurrentTab" }, response => {
+      sendRuntimeMessage({ type: "closeCurrentTab" }, response => {
         if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
+          reject(new Error(extensionErrorMessage(chrome.runtime.lastError.message)));
         } else if (response?.error) {
-          reject(new Error(response.error));
+          reject(new Error(extensionErrorMessage(response.error)));
         } else if (!response?.ok) {
           reject(new Error("The browser did not confirm that the tab was closed."));
         } else {

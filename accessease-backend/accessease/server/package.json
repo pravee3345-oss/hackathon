@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/automation/browser.test.ts ../../../browser-extension/background.test.js"
+    "test": "tsx --test src/automation/browser.test.ts src/db.test.ts ../../../browser-extension/background.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

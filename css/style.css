@@ -132,6 +132,7 @@ button { cursor: pointer; }
 .slider:before { content:""; position:absolute; width:21px;height:21px; left:4px;top:4px;background:#fff;border-radius:50%; transition:.2s; box-shadow:0 2px 5px #9995; }
 .switch input:checked + .slider { background:var(--primary); }
 .switch input:checked + .slider:before { transform:translateX(23px); }
+.switch input:focus-visible + .slider { outline:3px solid var(--text); outline-offset:3px; }
 
 .ai-agent {
   position:fixed; right:max(14px,env(safe-area-inset-right)); bottom:max(14px,env(safe-area-inset-bottom));
@@ -147,6 +148,7 @@ button { cursor: pointer; }
 }
 .ai-panel.open { display:block; }
 .ai-head { padding:15px 17px; background:linear-gradient(135deg,var(--primary),#756cff); color:#fff; display:flex; justify-content:space-between; }
+.ai-status { padding:6px 12px; color:var(--muted); background:#f7f7ff; font-size:.8rem; }
 .ai-messages { height:min(220px,35vh); min-height:120px; padding:14px; overflow:auto; background:#f8f8ff; }
 .ai-msg { max-width:85%; padding:9px 11px; border-radius:12px; margin-bottom:8px; font-size:.85rem; line-height:1.4; }
 .ai-msg.bot { background:#fff; border:1px solid var(--border); }

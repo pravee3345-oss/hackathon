@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS settings (
   language TEXT NOT NULL DEFAULT 'en',
   large_text INTEGER NOT NULL DEFAULT 0,
   high_contrast INTEGER NOT NULL DEFAULT 0,
-  voice_output INTEGER NOT NULL DEFAULT 0
+  voice_output INTEGER NOT NULL DEFAULT 0,
+  hands_free_voice INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS demo_applications (
   reference TEXT PRIMARY KEY,
@@ -32,6 +33,11 @@ CREATE TABLE IF NOT EXISTS demo_applications (
   details_ta TEXT NOT NULL
 );
 `);
+
+const settingsColumns = db.prepare("PRAGMA table_info(settings)").all() as Array<{ name: string }>;
+if (!settingsColumns.some((column) => column.name === "hands_free_voice")) {
+  db.exec("ALTER TABLE settings ADD COLUMN hands_free_voice INTEGER NOT NULL DEFAULT 0");
+}
 
 // Fictional demo records only (Workflow C). No real personal data.
 const count = db.prepare("SELECT COUNT(*) AS c FROM demo_applications").get() as { c: number };
@@ -56,24 +62,37 @@ export interface Settings {
   largeText: boolean;
   highContrast: boolean;
   voiceOutput: boolean;
+  handsFreeVoice: boolean;
 }
 
-export const DEFAULT_SETTINGS: Settings = { language: "en", largeText: false, highContrast: false, voiceOutput: false };
+export const DEFAULT_SETTINGS: Settings = {
+  language: "en",
+  largeText: false,
+  highContrast: false,
+  voiceOutput: false,
+  handsFreeVoice: false,
+};
 
 export function getSettings(userId: number): Settings {
   const r = db.prepare("SELECT * FROM settings WHERE user_id = ?").get(userId) as
-    | { language: Lang; large_text: number; high_contrast: number; voice_output: number }
+    | { language: Lang; large_text: number; high_contrast: number; voice_output: number; hands_free_voice: number }
     | undefined;
   if (!r) return { ...DEFAULT_SETTINGS };
-  return { language: r.language, largeText: !!r.large_text, highContrast: !!r.high_contrast, voiceOutput: !!r.voice_output };
+  return {
+    language: r.language,
+    largeText: !!r.large_text,
+    highContrast: !!r.high_contrast,
+    voiceOutput: !!r.voice_output,
+    handsFreeVoice: !!r.hands_free_voice,
+  };
 }
 
 export function saveSettings(userId: number, patch: Partial<Settings>): Settings {
   const next = { ...getSettings(userId), ...patch };
   db.prepare(
-    `INSERT INTO settings (user_id, language, large_text, high_contrast, voice_output) VALUES (?,?,?,?,?)
+    `INSERT INTO settings (user_id, language, large_text, high_contrast, voice_output, hands_free_voice) VALUES (?,?,?,?,?,?)
      ON CONFLICT(user_id) DO UPDATE SET language=excluded.language, large_text=excluded.large_text,
-       high_contrast=excluded.high_contrast, voice_output=excluded.voice_output`
-  ).run(userId, next.language, +next.largeText, +next.highContrast, +next.voiceOutput);
+       high_contrast=excluded.high_contrast, voice_output=excluded.voice_output, hands_free_voice=excluded.hands_free_voice`
+  ).run(userId, next.language, +next.largeText, +next.highContrast, +next.voiceOutput, +next.handsFreeVoice);
   return next;
 }

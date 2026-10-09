@@ -50,7 +50,15 @@ app.use("/api", (_req, res) => { res.status(404).json({ error: "Not found" }); }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error("[error]", err.message);
+  if (err.message.startsWith("Origin not allowed: ")) {
+    const rejectedOrigin = err.message.slice("Origin not allowed: ".length);
+    const expectedExtensionOrigin = config.corsExtensionId
+      ? `chrome-extension://${config.corsExtensionId}`
+      : "(CORS_EXTENSION_ID is not configured)";
+    console.error("[cors] Rejected origin:", rejectedOrigin, "Expected extension origin:", expectedExtensionOrigin);
+  } else {
+    console.error("[error]", err.message);
+  }
   res.status(err.message.startsWith("Origin not allowed") ? 403 : 500).json({
     error: config.isProd ? "Something went wrong." : err.message,
   });

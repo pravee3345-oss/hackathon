@@ -12,6 +12,7 @@ const SettingsPatch = z
     largeText: z.boolean(),
     highContrast: z.boolean(),
     voiceOutput: z.boolean(),
+    handsFreeVoice: z.boolean(),
   })
   .partial();
 

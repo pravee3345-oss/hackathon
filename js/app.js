@@ -8,7 +8,7 @@ const LANGS = {
     loginTitle:"Welcome Back", loginText:"Sign in to continue to your AccessEase dashboard.", username:"Username", password:"Password", signIn:"Sign In", noAccount:"Don't have an account?", createAccount:"Create an account",
     registerTitle:"Create Your Account", registerText:"Join AccessEase and personalize your accessibility experience.", fullName:"Full Name", age:"Age", email:"Email", confirmPassword:"Confirm Password", preferredLanguage:"Preferred Language", create:"Create Account", haveAccount:"Already have an account?",
     dashboard:"Dashboard", welcome:"Welcome", assistantStatus:"AI Assistant", enabled:"Enabled", preferences:"Accessibility Preferences", logout:"Logout",
-    settingsTitle:"Accessibility Settings", settingsText:"Choose how you want AccessEase to assist you.", largeText:"Large text", largeTextDesc:"Increase text size across AccessEase.", highContrast:"High contrast", highContrastDesc:"Use stronger colors for improved contrast.", voiceOutput:"Voice output", voiceOutputDesc:"Speak the assistant's replies aloud.", save:"Save Settings",
+    settingsTitle:"Accessibility Settings", settingsText:"Choose how you want AccessEase to assist you.", largeText:"Large text", largeTextDesc:"Increase text size across AccessEase.", highContrast:"High contrast", highContrastDesc:"Use stronger colors for improved contrast.", voiceOutput:"Voice output", voiceOutputDesc:"Speak the assistant's replies aloud.", handsFreeVoice:"Hands-Free Voice Assistant", handsFreeVoiceDesc:"Control the application using your voice without needing to see or touch the screen after activation. While enabled, AccessEase listens for “Hello Bot” when this page is open and active. Browser restrictions may pause listening in the background.", save:"Save Settings",
     aiGreeting:"Hi! I'm your AccessEase AI assistant. How can I help?", typeMessage:"Type a message...", send:"Send"
   },
   ta: {
@@ -138,7 +138,7 @@ function syncBrowserExtensionSession(token = localStorage.getItem("accessEaseTok
 }
 
 function defaultSettings() {
-  const defaults = { language: "en", largeText: false, highContrast: false, voiceOutput: false };
+  const defaults = { language: "en", largeText: false, highContrast: false, voiceOutput: false, handsFreeVoice: false };
   try {
     return { ...defaults, ...JSON.parse(localStorage.getItem("accessEaseSettings") || "{}") };
   } catch {
@@ -193,16 +193,17 @@ function footerHTML() {
 function aiHTML() {
   return `
   <div class="ai-agent">
-    <div class="ai-panel" id="aiPanel">
-      <div class="ai-head"><strong>🤖 AccessEase AI</strong><button id="aiClose" style="background:none;border:0;color:#fff;font-size:18px">×</button></div>
-      <div class="ai-messages" id="aiMessages"><div class="ai-msg bot">${T("aiGreeting")}</div></div>
+    <div class="ai-panel" id="aiPanel" role="region" aria-label="AccessEase voice assistant">
+      <div class="ai-head"><strong>🤖 AccessEase AI</strong><button id="aiClose" type="button" aria-label="Close assistant" style="background:none;border:0;color:#fff;font-size:18px">×</button></div>
+      <div id="aiStatus" class="ai-status" role="status" aria-live="polite"></div>
+      <div class="ai-messages" id="aiMessages" role="log" aria-live="polite" aria-relevant="additions text"><div class="ai-msg bot">${T("aiGreeting")}</div></div>
       <form class="ai-input" id="aiForm">
-        <input id="aiInput" placeholder="${T("typeMessage")}" autocomplete="off">
+        <input id="aiInput" aria-label="${T("typeMessage")}" placeholder="${T("typeMessage")}" autocomplete="off">
         <button type="button" id="aiMic" class="ai-mic" aria-label="Speak to assistant" aria-pressed="false" title="Speak to assistant">🎙️</button>
-        <button type="submit" title="${T("send")}">➤</button>
+        <button type="submit" aria-label="${T("send")}" title="${T("send")}">➤</button>
       </form>
     </div>
-    <button class="ai-toggle" id="aiToggle" aria-label="AI Assistant">🤖</button>
+    <button class="ai-toggle" id="aiToggle" aria-label="AI Assistant" aria-controls="aiPanel" aria-expanded="false">🤖</button>
   </div>`;
 }
 
@@ -359,6 +360,7 @@ function renderSettingsPage(s) {
       <div class="setting-row"><div class="setting-info"><h3>🔎 ${T("largeText")}</h3><p>${T("largeTextDesc")}</p></div><label class="switch"><input id="largeTextSetting" type="checkbox" ${s.largeText?"checked":""}><span class="slider"></span></label></div>
       <div class="setting-row"><div class="setting-info"><h3>🎨 ${T("highContrast")}</h3><p>${T("highContrastDesc")}</p></div><label class="switch"><input id="highContrastSetting" type="checkbox" ${s.highContrast?"checked":""}><span class="slider"></span></label></div>
       <div class="setting-row"><div class="setting-info"><h3>🔊 ${T("voiceOutput")}</h3><p>${T("voiceOutputDesc")}</p></div><label class="switch"><input id="voiceOutputSetting" type="checkbox" ${s.voiceOutput?"checked":""}><span class="slider"></span></label></div>
+      <div class="setting-row"><div class="setting-info"><h3>${T("handsFreeVoice")}</h3><p id="handsFreeVoiceDesc">${T("handsFreeVoiceDesc")}</p></div><label class="switch"><input id="handsFreeVoiceSetting" type="checkbox" aria-label="${T("handsFreeVoice")}" aria-describedby="handsFreeVoiceDesc" ${s.handsFreeVoice?"checked":""}><span class="slider"></span></label></div>
       <button class="btn" id="saveSettings" style="margin-top:22px">${T("save")}</button>
     </div></div>
   </section>`, "settings");
@@ -367,7 +369,8 @@ function renderSettingsPage(s) {
       language: s.language || backendLanguage(),
       largeText: document.getElementById("largeTextSetting").checked,
       highContrast: document.getElementById("highContrastSetting").checked,
-      voiceOutput: document.getElementById("voiceOutputSetting").checked
+      voiceOutput: document.getElementById("voiceOutputSetting").checked,
+      handsFreeVoice: document.getElementById("handsFreeVoiceSetting").checked
     };
     try {
       const result = API_CONFIG.USE_BACKEND ? await API.updateSettings(settings) : { settings };
@@ -375,6 +378,7 @@ function renderSettingsPage(s) {
       localStorage.setItem("accessEaseSettings", JSON.stringify(result.settings));
       applyAccessibilitySettings(result.settings);
       syncBrowserExtensionSession(localStorage.getItem("accessEaseToken"), result.settings);
+      window.dispatchEvent(new CustomEvent("accessease-settings-updated", { detail: result.settings }));
     } catch(err) {
       showToast(err.message);
       return;
@@ -407,6 +411,7 @@ function initAI() {
   const toggle = document.getElementById("aiToggle"), panel = document.getElementById("aiPanel");
   const close = document.getElementById("aiClose"), form = document.getElementById("aiForm");
   const input = document.getElementById("aiInput"), messages = document.getElementById("aiMessages");
+  const status = document.getElementById("aiStatus");
   const mic = document.getElementById("aiMic");
   const sessionId = sessionStorage.getItem("accessEaseAssistantSession") || crypto.randomUUID();
   sessionStorage.setItem("accessEaseAssistantSession", sessionId);
@@ -414,6 +419,13 @@ function initAI() {
   let activeRecognition = null;
   let submitting = false;
   let voiceSession = false;
+  let handsFreeRequested = !!defaultSettings().handsFreeVoice;
+  let handsFreeState = "DISABLED";
+  let wakeRecognition = null;
+  let commandRecognition = null;
+  let wakeRestartTimer = null;
+  let handsFreePermissionGranted = false;
+  let announceEnabledOnStart = false;
   const managedWindows = new Map();
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -430,8 +442,8 @@ function initAI() {
     return message;
   }
 
-  function speakReply(text, onComplete) {
-    if ((!defaultSettings().voiceOutput && !voiceSession) || !("speechSynthesis" in window)) {
+  function speakReply(text, onComplete, force = false) {
+    if ((!force && !defaultSettings().voiceOutput && !voiceSession) || !("speechSynthesis" in window)) {
       onComplete?.();
       return;
     }
@@ -444,11 +456,341 @@ function initAI() {
   }
 
   function parseConfirmation(text) {
-    const normalized = text.trim().toLowerCase().replace(/[.!?]+$/g, "").trim();
-    if (/^(yes|yeah|yep|confirm|proceed|go ahead|do it|ஆம்|ஆமாம்|சரி)$/.test(normalized)) return true;
-    if (/^(no|nope|cancel|don't|do not|நிறுத்து|வேண்டாம்|ரத்து)$/.test(normalized)) return false;
+    const normalized = text.trim().toLowerCase().replace(/[.!?]+/g, " ").replace(/\s+/g, " ").trim();
+    if (/^(yes|yes confirm|yeah|yeah confirm|yep|confirm|proceed|go ahead|do it|ஆம்|ஆமாம்|சரி)$/.test(normalized)) return true;
+    if (/^(no|no cancel|nope|cancel|cancel the operation|don't|do not|நிறுத்து|வேண்டாம்|ரத்து)$/.test(normalized)) return false;
     return null;
   }
+
+  function setHandsFreeState(next, message) {
+    handsFreeState = next;
+    if (status) status.textContent = message;
+    const spokenFeedback = handsFreeRequested && "speechSynthesis" in window;
+    messages?.setAttribute("aria-live", spokenFeedback ? "off" : "polite");
+    status?.setAttribute("aria-live", spokenFeedback ? "off" : "polite");
+  }
+
+  function syncHandsFreeLiveRegions() {
+    const spokenFeedback = handsFreeRequested && "speechSynthesis" in window;
+    messages?.setAttribute("aria-live", spokenFeedback ? "off" : "polite");
+    status?.setAttribute("aria-live", spokenFeedback ? "off" : "polite");
+  }
+
+  function stopRecognition(recognition) {
+    if (!recognition) return;
+    try {
+      recognition.stop();
+    } catch (error) {
+      if (!(error instanceof DOMException) || error.name !== "InvalidStateError") throw error;
+    }
+  }
+
+  function announceHandsFree(message, onComplete) {
+    if (status) status.textContent = message;
+    const canSpeak = "speechSynthesis" in window;
+    if (canSpeak) {
+      messages?.setAttribute("aria-live", "off");
+      status?.setAttribute("aria-live", "off");
+    }
+    speakReply(message, () => {
+      syncHandsFreeLiveRegions();
+      onComplete?.();
+    }, true);
+  }
+
+  function scheduleWakeRestart(delay = 700) {
+    clearTimeout(wakeRestartTimer);
+    if (!handsFreeRequested || document.visibilityState !== "visible") return;
+    wakeRestartTimer = setTimeout(() => {
+      wakeRestartTimer = null;
+      startWakeRecognition();
+    }, delay);
+  }
+
+  function continueHandsFreeAfterReply(result) {
+    if (!handsFreeRequested) return;
+    if (!handsFreePermissionGranted) {
+      const message = "Hands-free listening is paused because microphone access is unavailable. Allow microphone access and enable hands-free mode again.";
+      setHandsFreeState("ERROR", message);
+      return;
+    }
+    voiceSession = true;
+    if (result.status === "needs_confirmation" || result.status === "needs_info") {
+      setHandsFreeState("AWAITING_CONFIRMATION", result.status === "needs_confirmation"
+        ? "Waiting for a spoken confirmation."
+        : "Listening for the requested information.");
+      setTimeout(() => startHandsFreeCommandRecognition(), 0);
+      return;
+    }
+    voiceSession = false;
+    setHandsFreeState("READY_FOR_WAKE_WORD", "Say “Hello Bot” to activate the assistant.");
+    scheduleWakeRestart(250);
+  }
+
+  function startHandsFreeCommandRecognition() {
+    if (!handsFreeRequested || document.visibilityState !== "visible" || submitting || commandRecognition) return;
+    if (wakeRecognition) {
+      setTimeout(() => startHandsFreeCommandRecognition(), 80);
+      return;
+    }
+    if (!SpeechRecognition) {
+      setHandsFreeState("ERROR", "Voice recognition is not available in this browser. Use the microphone button or type instead.");
+      announceHandsFree("Voice recognition is not available in this browser. Use the microphone button or type your request.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    commandRecognition = recognition;
+    recognition.lang = SPEECH_LOCALES[getLang()] || "en-US";
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognition.maxAlternatives = 1;
+    const finalSegments = new Map();
+    let interimTranscript = "";
+    let reportedError = false;
+    let commandHandled = false;
+
+    recognition.onstart = () => {
+      if (!handsFreeRequested || document.visibilityState !== "visible") {
+        stopRecognition(recognition);
+        return;
+      }
+      setHandsFreeState("LISTENING_FOR_COMMAND", "Listening for your command.");
+    };
+    recognition.onresult = event => {
+      interimTranscript = "";
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const result = event.results[index];
+        const transcript = result[0]?.transcript?.trim();
+        if (!transcript) continue;
+        if (result.isFinal) finalSegments.set(index, transcript);
+        else interimTranscript = `${interimTranscript} ${transcript}`.trim();
+      }
+    };
+    recognition.onerror = event => {
+      if (event.error === "aborted") return;
+      reportedError = true;
+      const messagesByError = {
+        "not-allowed": "Microphone access is unavailable. Allow microphone access for AccessEase in your browser settings, then enable hands-free mode again.",
+        "service-not-allowed": "Speech recognition is unavailable in this browser. Try Chrome or Edge, or use the microphone button.",
+        "audio-capture": "No microphone is available. Connect or enable a microphone, then try again.",
+        "network": "Speech recognition lost its network connection. Please try your command again."
+      };
+      const message = messagesByError[event.error] || `Speech recognition encountered an error: ${event.error}.`;
+      setHandsFreeState("ERROR", message);
+      const permanent = ["not-allowed", "service-not-allowed", "audio-capture"].includes(event.error);
+      if (permanent) handsFreePermissionGranted = false;
+      announceHandsFree(message, () => {
+        if (handsFreeRequested && !permanent) {
+          setHandsFreeState("READY_FOR_WAKE_WORD", "Say “Hello Bot” to activate the assistant.");
+          scheduleWakeRestart(1200);
+        }
+      });
+    };
+    recognition.onend = () => {
+      if (commandRecognition === recognition) commandRecognition = null;
+      if (!handsFreeRequested || document.visibilityState !== "visible" || commandHandled) return;
+      const spoken = `${[...finalSegments.entries()]
+        .sort(([left], [right]) => left - right)
+        .map(([, text]) => text)
+        .join(" ")} ${interimTranscript}`.trim();
+      if (!spoken) {
+        if (!reportedError) {
+          setHandsFreeState("INITIALIZING", "Preparing to listen for your command again.");
+          announceHandsFree("I didn't hear a command. Please say it again.", () => startHandsFreeCommandRecognition());
+        }
+        return;
+      }
+      commandHandled = true;
+      if (pendingAction) {
+        const confirmation = parseConfirmation(spoken);
+        if (confirmation === null) {
+          setHandsFreeState("INITIALIZING", "Preparing to listen for your confirmation again.");
+          announceHandsFree("I didn't understand. Please say yes, confirm, or no, cancel.", () => startHandsFreeCommandRecognition());
+          return;
+        }
+        confirmPendingAction(confirmation, messages.querySelector(".ai-confirm"), true);
+        return;
+      }
+      input.value = spoken;
+      form.requestSubmit();
+    };
+    try {
+      recognition.start();
+    } catch (error) {
+      if (commandRecognition === recognition) commandRecognition = null;
+      const message = `Could not start voice recognition: ${error instanceof Error ? error.message : String(error)}.`;
+      setHandsFreeState("ERROR", message);
+      announceHandsFree(message, () => scheduleWakeRestart(1200));
+    }
+  }
+
+  function startWakeRecognition() {
+    if (!handsFreeRequested || !handsFreePermissionGranted || document.visibilityState !== "visible"
+      || !SpeechRecognition || wakeRecognition || commandRecognition || submitting) return;
+    const recognition = new SpeechRecognition();
+    wakeRecognition = recognition;
+    recognition.lang = "en-US";
+    recognition.interimResults = true;
+    recognition.continuous = true;
+    recognition.maxAlternatives = 1;
+    recognition.onstart = () => {
+      if (document.visibilityState !== "visible" || !handsFreeRequested) {
+        stopRecognition(recognition);
+        return;
+      }
+      if (wakeRecognition !== recognition || !handsFreeRequested) return;
+      setHandsFreeState("READY_FOR_WAKE_WORD", "Listening for “Hello Bot” while this page is open and active.");
+      if (announceEnabledOnStart) {
+        announceEnabledOnStart = false;
+        sessionStorage.setItem("accessEaseHandsFreeAnnounced", "true");
+        announceHandsFree("Hands-free voice assistant enabled. Say Hello Bot to activate the assistant.");
+      }
+    };
+    recognition.onresult = event => {
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const result = event.results[index];
+        if (!result.isFinal) continue;
+        const transcript = result[0]?.transcript?.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
+        if (!transcript || !/\bhello\s+bot\b/i.test(transcript)) continue;
+        setHandsFreeState("WAKE_WORD_DETECTED", "Wake phrase detected.");
+        panel.classList.add("open");
+        toggle.setAttribute("aria-expanded", "true");
+        input.focus();
+        voiceSession = true;
+        stopRecognition(recognition);
+        announceHandsFree("I'm listening. Please tell me what you would like me to do.", () => {
+          setHandsFreeState("INITIALIZING", "Preparing to listen for your command.");
+          startHandsFreeCommandRecognition();
+        });
+        break;
+      }
+    };
+    recognition.onerror = event => {
+      if (event.error === "aborted" || !handsFreeRequested) return;
+      const permanent = ["not-allowed", "service-not-allowed", "audio-capture"].includes(event.error);
+      const message = event.error === "not-allowed"
+        ? "Microphone access is unavailable. Allow microphone access for AccessEase in your browser settings, then enable hands-free mode again."
+        : event.error === "audio-capture"
+          ? "No microphone is available. Connect or enable a microphone, then try again."
+          : event.error === "service-not-allowed"
+            ? "Speech recognition is unavailable in this browser. Try Chrome or Edge, or use the microphone button."
+            : "Speech recognition was interrupted. I will try to listen again.";
+      if (permanent) {
+        handsFreePermissionGranted = false;
+        setHandsFreeState("ERROR", message);
+        announceHandsFree(message);
+      } else {
+        setHandsFreeState("ERROR", message);
+        if (event.error !== "no-speech") announceHandsFree(message);
+      }
+    };
+    recognition.onend = () => {
+      if (wakeRecognition === recognition) wakeRecognition = null;
+      if (!handsFreeRequested || document.visibilityState !== "visible") return;
+      if (handsFreePermissionGranted && (handsFreeState === "READY_FOR_WAKE_WORD" || handsFreeState === "ERROR")) {
+        if (handsFreeState === "READY_FOR_WAKE_WORD") {
+          setHandsFreeState("INITIALIZING", "Wake-word listening paused; restarting.");
+        }
+        scheduleWakeRestart(handsFreeState === "ERROR" ? 1500 : 700);
+      }
+    };
+    try {
+      recognition.start();
+    } catch (error) {
+      if (wakeRecognition === recognition) wakeRecognition = null;
+      const message = `Could not start wake-word recognition: ${error instanceof Error ? error.message : String(error)}.`;
+      setHandsFreeState("ERROR", message);
+      announceHandsFree(message);
+      if (handsFreeRequested && handsFreePermissionGranted) scheduleWakeRestart(1500);
+    }
+  }
+
+  async function setHandsFreeEnabled(enabled, announce = false) {
+    handsFreeRequested = enabled;
+    clearTimeout(wakeRestartTimer);
+    wakeRestartTimer = null;
+    if (!enabled) {
+      setHandsFreeState("DISABLED", "Hands-free voice assistant is off.");
+      stopRecognition(wakeRecognition);
+      stopRecognition(commandRecognition);
+      sessionStorage.removeItem("accessEaseHandsFreeAnnounced");
+      wakeRecognition = null;
+      commandRecognition = null;
+      voiceSession = false;
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      announceHandsFree("Hands-free voice assistant disabled.");
+      return;
+    }
+    setHandsFreeState("INITIALIZING", "Requesting microphone access.");
+    if (!isSecureSpeechContext()) {
+      const message = "Hands-free voice requires a secure page, such as localhost or HTTPS. Use the microphone button or type your request.";
+      setHandsFreeState("ERROR", message);
+      announceHandsFree(message);
+      return;
+    }
+    if (!SpeechRecognition) {
+      const message = "Hands-free voice recognition is not supported in this browser. Try Chrome or Edge, or use the microphone button.";
+      setHandsFreeState("ERROR", message);
+      announceHandsFree(message);
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      const message = "This browser cannot request microphone access for hands-free mode. Use the microphone button or type your request.";
+      setHandsFreeState("ERROR", message);
+      announceHandsFree(message);
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop());
+      handsFreePermissionGranted = true;
+      if (!handsFreeRequested) return;
+      announceEnabledOnStart = announce || sessionStorage.getItem("accessEaseHandsFreeAnnounced") !== "true";
+      startWakeRecognition();
+    } catch (error) {
+      handsFreePermissionGranted = false;
+      const denied = error instanceof DOMException && error.name === "NotAllowedError";
+      const message = denied
+        ? "Microphone access is unavailable. Allow microphone access for AccessEase in your browser settings, then enable hands-free mode again."
+        : `Could not access the microphone: ${error instanceof Error ? error.message : String(error)}.`;
+      setHandsFreeState("ERROR", message);
+      announceHandsFree(message);
+    }
+  }
+
+  window.addEventListener("accessease-settings-updated", event => {
+    const settings = event.detail;
+    setHandsFreeEnabled(!!settings?.handsFreeVoice, !!settings?.handsFreeVoice);
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden" && handsFreeRequested) {
+      clearTimeout(wakeRestartTimer);
+      wakeRestartTimer = null;
+      stopRecognition(wakeRecognition);
+      stopRecognition(commandRecognition);
+      wakeRecognition = null;
+      commandRecognition = null;
+      setHandsFreeState("SUSPENDED", "Hands-free listening is paused while AccessEase is in the background.");
+    } else if (document.visibilityState === "visible" && handsFreeRequested) {
+      setHandsFreeEnabled(true);
+    }
+  });
+  window.addEventListener("pageshow", () => {
+    if (document.visibilityState === "visible" && handsFreeRequested && handsFreeState === "SUSPENDED"
+      && !wakeRecognition && !commandRecognition) {
+      setHandsFreeEnabled(true);
+    }
+  });
+  window.addEventListener("pagehide", () => {
+    if (!handsFreeRequested) return;
+    clearTimeout(wakeRestartTimer);
+    stopRecognition(wakeRecognition);
+    stopRecognition(commandRecognition);
+    wakeRecognition = null;
+    commandRecognition = null;
+    setHandsFreeState("SUSPENDED", "Hands-free listening stopped because AccessEase was closed.");
+  });
 
   function extensionTabAction(action, payload) {
     return new Promise((resolve, reject) => {
@@ -471,7 +813,7 @@ function initAI() {
     });
   }
 
-  function appendAssistantResult(result, openedWindow = null) {
+  function appendAssistantResult(result, openedWindow = null, onSpoken) {
     const reply = result.reply || result.message;
     let afterReply = null;
     if (result.closeService) {
@@ -537,13 +879,18 @@ function initAI() {
       }
     }
     messages.scrollTop = messages.scrollHeight;
-    if (reply) speakReply(reply, afterReply);
-    else afterReply?.();
+    const finishReply = async () => {
+      if (afterReply) await afterReply();
+      onSpoken?.();
+    };
+    if (reply) speakReply(reply, finishReply);
+    else finishReply();
   }
 
   async function confirmPendingAction(confirm, controls, fromVoice = false) {
     if (!pendingAction || submitting) return;
     submitting = true;
+    if (handsFreeRequested) setHandsFreeState("EXECUTING_TASK", "Processing your confirmation.");
     controls?.querySelectorAll("button").forEach(item => item.disabled = true);
     const action = pendingAction;
     const opensWebsite = action.intent === "open_website" || action.intent === "search_website";
@@ -558,20 +905,32 @@ function initAI() {
       });
       pendingAction = null;
       controls?.remove();
-      appendAssistantResult(result, openedWindow);
+      appendAssistantResult(result, openedWindow, () => continueHandsFreeAfterReply(result));
     } catch (err) {
       openedWindow?.close();
       controls?.querySelectorAll("button").forEach(item => item.disabled = false);
       const message = `Sorry, I couldn't complete that request: ${err.message}`;
       appendMessage(message);
-      speakReply(message);
+      if (handsFreeRequested) setHandsFreeState("ERROR", message);
+      speakReply(message, () => {
+        if (handsFreeRequested) continueHandsFreeAfterReply({ status: "failed" });
+      });
     } finally {
       submitting = false;
     }
   }
 
-  toggle?.addEventListener("click", () => panel.classList.toggle("open"));
-  close?.addEventListener("click", () => panel.classList.remove("open"));
+  toggle?.addEventListener("click", () => {
+    const opened = !panel.classList.contains("open");
+    panel.classList.toggle("open", opened);
+    toggle.setAttribute("aria-expanded", String(opened));
+    if (opened) input.focus();
+  });
+  close?.addEventListener("click", () => {
+    panel.classList.remove("open");
+    toggle?.setAttribute("aria-expanded", "false");
+    toggle?.focus();
+  });
   if (!SpeechRecognition) {
     mic.disabled = true;
     mic.title = "Voice input is not supported by this browser. Type your message instead.";
@@ -586,6 +945,20 @@ function initAI() {
           appendMessage(`Could not finish voice capture: ${err.message}. Try selecting the microphone again.`);
         }
         return;
+      }
+      if (handsFreeRequested) {
+        setHandsFreeState("LISTENING_FOR_COMMAND", "Listening for your command.");
+        if (wakeRecognition) {
+          stopRecognition(wakeRecognition);
+          wakeRecognition = null;
+        }
+        if (commandRecognition) {
+          const interrupted = commandRecognition;
+          commandRecognition = null;
+          interrupted.onend = () => {};
+          stopRecognition(interrupted);
+        }
+        voiceSession = true;
       }
       if (!isSecureSpeechContext()) {
         appendMessage("Voice input requires a secure context such as localhost or HTTPS. Use a secure page or type your message instead.");
@@ -637,15 +1010,29 @@ function initAI() {
         const message = messagesByError[event.error];
         if (message) {
           appendMessage(message);
-          speakReply(message);
+          const permanent = ["not-allowed", "service-not-allowed", "audio-capture"].includes(event.error);
+          if (handsFreeRequested) {
+            setHandsFreeState("ERROR", message);
+            if (permanent) handsFreePermissionGranted = false;
+          }
+          speakReply(message, () => {
+            if (handsFreeRequested && !permanent) continueHandsFreeAfterReply({ status: "failed" });
+          });
         } else {
           const errorMessage = `Voice input failed: ${event.error}. You can type your message instead.`;
           appendMessage(errorMessage);
-          speakReply(errorMessage);
+          if (handsFreeRequested) setHandsFreeState("ERROR", errorMessage);
+          speakReply(errorMessage, () => {
+            if (handsFreeRequested) continueHandsFreeAfterReply({ status: "failed" });
+          });
         }
       };
       recognition.onstart = () => {
         voiceSession = true;
+        if (handsFreeRequested) {
+          handsFreePermissionGranted = true;
+          setHandsFreeState("LISTENING_FOR_COMMAND", "Listening for your command.");
+        }
         mic.title = "Listening — select to finish";
         mic.setAttribute("aria-label", mic.title);
       };
@@ -658,7 +1045,12 @@ function initAI() {
         mic.setAttribute("aria-label", mic.title);
         if (!spoken) {
           if (!reportedRecognitionError) {
-            appendMessage("I didn't receive a speech transcript. Check that the correct microphone is selected, allow microphone access for this site, and match the AccessEase language to your speech. Try again or type your message.");
+            const message = "I didn't receive a speech transcript. Check that the correct microphone is selected, allow microphone access for this site, and match the AccessEase language to your speech. Try again or type your message.";
+            appendMessage(message);
+            if (handsFreeRequested) setHandsFreeState("INITIALIZING", "Preparing to resume wake-word listening.");
+            speakReply(message, () => {
+              if (handsFreeRequested) continueHandsFreeAfterReply({ status: "reply" });
+            });
           }
           return;
         }
@@ -675,7 +1067,9 @@ function initAI() {
         mic.setAttribute("aria-label", mic.title);
         const message = `Could not start voice input: ${err.message}`;
         appendMessage(message);
-        speakReply(message);
+        speakReply(message, () => {
+          if (handsFreeRequested) continueHandsFreeAfterReply({ status: "failed" });
+        });
       }
     });
   }
@@ -685,6 +1079,39 @@ function initAI() {
     const controls = button.parentElement;
     await confirmPendingAction(button.dataset.confirm === "yes", controls);
   });
+
+  function handleLocalVoiceCommand(message) {
+    const normalized = message.toLowerCase().replace(/[.!?]+/g, " ").replace(/\s+/g, " ").trim();
+    const routes = [
+      { pattern: /^(open|go to|take me to) (the )?(home|home page)$/i, path: "index.html", label: "home" },
+      { pattern: /^(open|go to|take me to) (the )?(about|about page)$/i, path: "about.html", label: "about" },
+      { pattern: /^(open|go to|take me to) (the )?(dashboard|dashboard page)$/i, path: "dashboard.html", label: "dashboard" },
+      { pattern: /^(open|go to|take me to) (the )?(settings|settings page)$/i, path: "settings.html", label: "settings" }
+    ];
+    const target = routes.find(route => route.pattern.test(normalized));
+    if (target) {
+      setHandsFreeState("EXECUTING_TASK", `Opening ${target.label}.`);
+      announceHandsFree(`Opening ${target.label}.`, () => location.assign(target.path));
+      return true;
+    }
+    if (/^(read|tell me) (the )?(available )?(settings|options|choices)$/i.test(normalized)) {
+      const options = [...document.querySelectorAll(".setting-info h3")]
+        .map(element => element.textContent.trim())
+        .filter(Boolean);
+      const headings = [...document.querySelectorAll("main h1, main h2, main h3")]
+        .map(element => element.textContent.trim())
+        .filter(Boolean);
+      const text = options.length
+        ? `Available accessibility settings: ${options.join(", ")}.`
+        : headings.length
+          ? `This page has: ${headings.join(", ")}.`
+          : "There are no additional options on this page.";
+      announceHandsFree(text, () => continueHandsFreeAfterReply({ status: "reply" }));
+      return true;
+    }
+    return false;
+  }
+
   form?.addEventListener("submit", async e => {
     e.preventDefault();
     const message = input.value.trim();
@@ -695,6 +1122,23 @@ function initAI() {
         input.value = "";
         await confirmPendingAction(confirmation, messages.querySelector(".ai-confirm"), voiceSession);
         return;
+      }
+      if (handsFreeRequested && voiceSession) {
+        input.value = "";
+        announceHandsFree("I didn't understand. Please say yes, confirm, or no, cancel.", () => startHandsFreeCommandRecognition());
+        return;
+      }
+    }
+    if (handsFreeRequested && voiceSession && handleLocalVoiceCommand(message)) {
+      input.value = "";
+      return;
+    }
+    if (handsFreeRequested) {
+      voiceSession = true;
+      setHandsFreeState("PROCESSING_COMMAND", "Processing your request.");
+      if (wakeRecognition) {
+        stopRecognition(wakeRecognition);
+        wakeRecognition = null;
       }
     }
     submitting = true;
@@ -709,19 +1153,24 @@ function initAI() {
           language: backendLanguage(),
           sessionId
         });
-        appendAssistantResult(result);
+        appendAssistantResult(result, null, () => continueHandsFreeAfterReply(result));
       } else {
-        appendMessage("I’m ready to help! Connect the backend in js/config.js to use the AI assistant.");
+        const result = { status: "failed", message: "I’m ready to help! Connect the backend in js/config.js to use the AI assistant." };
+        appendMessage(result.message);
+        speakReply(result.message, () => continueHandsFreeAfterReply(result));
       }
     } catch(err) {
       const errorMessage = `Sorry, I couldn't reach the AI service: ${err.message}`;
       appendMessage(errorMessage);
-      speakReply(errorMessage);
+      if (handsFreeRequested) setHandsFreeState("ERROR", errorMessage);
+      speakReply(errorMessage, () => continueHandsFreeAfterReply({ status: "failed" }));
     } finally {
       submitting = false;
       if (submitButton) submitButton.disabled = false;
     }
   });
+  if (handsFreeRequested) setHandsFreeEnabled(true);
+  else setHandsFreeState("DISABLED", "Hands-free voice assistant is off.");
 }
 
 const page = document.body.dataset.page;
