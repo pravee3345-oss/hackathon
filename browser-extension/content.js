@@ -1,26 +1,50 @@
 (() => {
   const localHost = location.protocol === "http:" && ["localhost", "127.0.0.1"].includes(location.hostname);
   if (localHost) {
-    function syncPageSession(token = localStorage.getItem("accessEaseToken")) {
-      let settings = {};
-      try {
-        settings = JSON.parse(localStorage.getItem("accessEaseSettings") || "{}");
-      } catch {
-        settings = {};
+    function syncPageSession(token = localStorage.getItem("accessEaseToken"), settings, requestId) {
+      if (!settings) {
+        try {
+          settings = JSON.parse(localStorage.getItem("accessEaseSettings") || "{}");
+        } catch {
+          settings = {};
+        }
       }
       chrome.runtime.sendMessage({
         type: "syncSession",
         token,
         settings
+      }, response => {
+        if (!requestId) return;
+        const error = chrome.runtime.lastError?.message || response?.error;
+        window.postMessage({
+          type: "ACCESSEASE_SESSION_RESULT",
+          requestId,
+          ok: !error && response?.ok === true,
+          error: error || null
+        }, location.origin);
       });
     }
 
     window.addEventListener("message", event => {
       if (event.source !== window || event.origin !== location.origin || event.data?.type !== "ACCESSEASE_SESSION") return;
-      syncPageSession(event.data.token);
+      syncPageSession(event.data.token, event.data.settings, event.data.requestId);
     });
     window.addEventListener("storage", event => {
       if (event.key === "accessEaseToken" || event.key === "accessEaseSettings") syncPageSession();
+    });
+    window.addEventListener("message", event => {
+      if (event.source !== window || event.origin !== location.origin || event.data?.type !== "ACCESSEASE_TAB_ACTION") return;
+      const { requestId, action, payload } = event.data;
+      if (!["openManagedTab", "closeManagedTab"].includes(action) || typeof requestId !== "string") return;
+      chrome.runtime.sendMessage({ type: action, ...(payload || {}) }, response => {
+        const error = chrome.runtime.lastError?.message || response?.error;
+        window.postMessage({
+          type: "ACCESSEASE_TAB_ACTION_RESULT",
+          requestId,
+          ok: !error && response?.ok === true,
+          error: error || null
+        }, location.origin);
+      });
     });
     syncPageSession();
     return;
@@ -58,7 +82,7 @@
     <div class="wrap">
       <section class="panel" id="panel">
         <header class="head"><strong>🤖 AccessEase</strong><button id="close" aria-label="Close">×</button></header>
-        <div class="status" id="status">Checking AccessEase login…</div>
+        <div class="status" id="status">Connecting to AccessEase…</div>
         <div class="messages" id="messages"><div class="msg">I stay available on this page. Try “open YouTube” or ask about what is visible.</div></div>
         <form class="form" id="form">
           <input id="input" aria-label="Message" placeholder="Type or use the microphone…" autocomplete="off">
@@ -79,9 +103,14 @@
   let pendingAction = null;
   let activeRecognition = null;
   let submitting = false;
+  let voiceSession = false;
   let settings = { language: "en", voiceOutput: false };
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const speechLocales = { en: "en-US", ta: "ta-IN", hi: "hi-IN" };
+
+  function isSecureSpeechContext() {
+    return window.isSecureContext || location.hostname === "localhost" || location.hostname === "127.0.0.1";
+  }
 
   function addMessage(text, sender = "bot") {
     const node = document.createElement("div");
@@ -99,12 +128,24 @@
     }).slice(0, 11000);
   }
 
-  function speak(text) {
-    if (!settings.voiceOutput || !("speechSynthesis" in window)) return;
+  function speak(text, onComplete) {
+    if ((!settings.voiceOutput && !voiceSession) || !("speechSynthesis" in window)) {
+      onComplete?.();
+      return;
+    }
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = speechLocales[settings.language] || "en-US";
+    utterance.onend = () => onComplete?.();
+    utterance.onerror = () => onComplete?.();
     window.speechSynthesis.speak(utterance);
+  }
+
+  function parseConfirmation(text) {
+    const normalized = text.trim().toLowerCase().replace(/[.!?]+$/g, "").trim();
+    if (/^(yes|yeah|yep|confirm|proceed|go ahead|do it|ஆம்|ஆமாம்|சரி)$/.test(normalized)) return true;
+    if (/^(no|nope|cancel|don't|do not|நிறுத்து|வேண்டாம்|ரத்து)$/.test(normalized)) return false;
+    return null;
   }
 
   function sendToBackend(type, payload) {
@@ -117,9 +158,20 @@
     });
   }
 
+  function sendTabAction(type, payload) {
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ type, ...payload }, response => {
+        if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
+        if (response?.error) return reject(new Error(response.error));
+        if (!response?.ok) return reject(new Error("The browser did not confirm the tab operation."));
+        resolve();
+      });
+    });
+  }
+
   function showResult(result) {
     const reply = result.reply || result.message;
-    if (reply) {
+    if (reply && !result.closeService && !result.closeTab && !result.openUrl) {
       addMessage(reply);
       speak(reply);
     }
@@ -131,22 +183,57 @@
       messages.appendChild(row);
     }
     if (result.openUrl) {
-      const url = new URL(result.openUrl);
-      const allowed = ["youtube.com", "google.com", "wikipedia.org"].some(host => url.hostname === host || url.hostname.endsWith(`.${host}`));
-      if (url.protocol !== "https:" || !allowed) {
-        addMessage("The assistant returned an unsupported destination.");
-        return;
+      const openTab = () => sendTabAction("openManagedTab", { url: result.openUrl })
+        .catch(error => {
+          addMessage(error.message);
+          speak(error.message);
+        });
+      if (reply) {
+        addMessage(reply);
+        speak(reply, openTab);
+      } else {
+        openTab();
       }
-      location.assign(url.href);
+    }
+    if (result.closeService) {
+      const closeTab = () => sendTabAction("closeManagedTab", { service: result.closeService })
+        .catch(error => {
+          addMessage(error.message);
+          speak(error.message);
+        });
+      if (reply) {
+        addMessage(reply);
+        speak(reply, closeTab);
+      } else {
+        closeTab();
+      }
     }
     if (result.closeTab === true) {
-      closeCurrentTab().catch(error => addMessage(`Could not close this tab: ${error.message}`));
+      const closeTab = () => closeCurrentTab().catch(error => {
+        const message = `Could not close this tab: ${error.message}`;
+        addMessage(message);
+        speak(message);
+      });
+      if (reply) {
+        addMessage(reply);
+        speak(reply, closeTab);
+      } else {
+        closeTab();
+      }
     }
   }
 
-  async function submitMessage(text) {
+  async function submitMessage(text, fromVoice = false) {
     const message = text.trim();
     if (!message || submitting) return;
+    if (pendingAction) {
+      const confirmation = parseConfirmation(message);
+      if (confirmation !== null) {
+        await confirmPendingAction(confirmation);
+        return;
+      }
+    }
+    if (fromVoice) voiceSession = true;
     submitting = true;
     const sendButton = $("#form button[type='submit']");
     sendButton.disabled = true;
@@ -163,9 +250,34 @@
       showResult(result);
     } catch (error) {
       addMessage(error.message);
+      speak(error.message);
     } finally {
       submitting = false;
       sendButton.disabled = false;
+    }
+  }
+
+  async function confirmPendingAction(confirm) {
+    if (!pendingAction || submitting) return;
+    submitting = true;
+    const action = pendingAction;
+    addMessage(confirm ? "Yes" : "No", "user");
+    try {
+      const result = await sendToBackend("confirm", {
+        confirm,
+        action,
+        language: settings.language === "ta" ? "ta" : "en",
+        sessionId,
+        client: "browser-extension"
+      });
+      pendingAction = null;
+      messages.querySelectorAll(".confirm").forEach(row => row.remove());
+      showResult(result);
+    } catch (error) {
+      addMessage(error.message);
+      speak(error.message);
+    } finally {
+      submitting = false;
     }
   }
 
@@ -181,23 +293,8 @@
     if (!button || !pendingAction) return;
     const row = button.parentElement;
     row.querySelectorAll("button").forEach(item => item.disabled = true);
-    const confirm = button.dataset.confirm === "yes";
-    addMessage(confirm ? "Yes" : "No", "user");
-    try {
-      const result = await sendToBackend("confirm", {
-        confirm,
-        action: pendingAction,
-        language: settings.language === "ta" ? "ta" : "en",
-        sessionId,
-        client: "browser-extension"
-      });
-      pendingAction = null;
-      row.remove();
-      showResult(result);
-    } catch (error) {
-      row.querySelectorAll("button").forEach(item => item.disabled = false);
-      addMessage(error.message);
-    }
+    await confirmPendingAction(button.dataset.confirm === "yes");
+    if (pendingAction) row.querySelectorAll("button").forEach(item => item.disabled = false);
   });
 
   function closeCurrentTab() {
@@ -224,6 +321,10 @@
         } catch (error) {
           addMessage(`Could not finish voice capture: ${error.message}. Try selecting the mic again.`);
         }
+        return;
+      }
+      if (!isSecureSpeechContext()) {
+        addMessage("Voice input requires a secure context such as localhost or HTTPS. Use a secure page or type your message instead.");
         return;
       }
       const recognition = new SpeechRecognition();
@@ -262,16 +363,21 @@
           if (event.error === "aborted") return;
           reportedRecognitionError = true;
           if (event.error === "no-speech") {
-            addMessage("I couldn't detect speech. Speak after selecting the mic, check that the microphone is not muted, and match AccessEase's language to your speech. YouTube may need microphone permission separately from the AccessEase site.");
+            const message = "I couldn't detect speech. Make sure the microphone is enabled and allowed for this site, then speak after the listening indicator appears. Check that AccessEase is set to the language you're speaking, or type your message.";
+            addMessage(message);
+            speak(message);
             return;
           }
           const messagesByError = {
             "not-allowed": "Microphone access was blocked for this website. Allow microphone access for YouTube in the browser's site settings, then reload the tab and try again.",
             "service-not-allowed": "Speech recognition is blocked or unavailable in this browser. Try Chrome or Edge on a secure page.",
             "audio-capture": "No microphone is available. Connect or enable a microphone, then try again.",
-            "network": "Speech recognition couldn't connect to the browser's speech service. Check your internet connection and try again."
+            "network": "Speech recognition couldn't connect to the browser's speech service. Check your internet connection and try again.",
+            "language-not-supported": "Speech recognition does not support the selected language in this browser. Change AccessEase's language or type your message."
           };
-          addMessage(messagesByError[event.error] || `Voice input failed: ${event.error}. Type your message instead.`);
+          const message = messagesByError[event.error] || `Voice input failed: ${event.error}. Type your message instead.`;
+          addMessage(message);
+          speak(message);
         };
         recognition.onend = () => {
           const spoken = `${[...finalSegments.entries()].sort(([a], [b]) => a - b).map(([, text]) => text).join(" ")} ${interimTranscript}`.trim();
@@ -287,6 +393,12 @@
             return;
           }
           input.value = spoken;
+          const confirmation = pendingAction ? parseConfirmation(spoken) : null;
+          if (confirmation !== null) {
+            confirmPendingAction(confirmation);
+          } else {
+            submitMessage(spoken, true);
+          }
         };
         recognition.start();
       } catch (error) {

@@ -118,7 +118,23 @@ function logout() {
 }
 
 function syncBrowserExtensionSession(token = localStorage.getItem("accessEaseToken"), settings = defaultSettings()) {
-  window.postMessage({ type: "ACCESSEASE_SESSION", token, settings }, location.origin);
+  const requestId = crypto.randomUUID();
+  return new Promise(resolve => {
+    const timeout = setTimeout(() => {
+      window.removeEventListener("message", onResult);
+      resolve(false);
+    }, 1000);
+    function onResult(event) {
+      if (event.source !== window || event.origin !== location.origin
+        || event.data?.type !== "ACCESSEASE_SESSION_RESULT"
+        || event.data.requestId !== requestId) return;
+      clearTimeout(timeout);
+      window.removeEventListener("message", onResult);
+      resolve(event.data.ok === true);
+    }
+    window.addEventListener("message", onResult);
+    window.postMessage({ type: "ACCESSEASE_SESSION", requestId, token, settings }, location.origin);
+  });
 }
 
 function defaultSettings() {
@@ -259,11 +275,11 @@ function loginPage() {
         if (!result.token || !result.user) throw new Error("The server did not return a login token and user.");
         localStorage.setItem("accessEaseToken", result.token);
         localStorage.setItem("accessEaseUser", JSON.stringify(result.user));
-        syncBrowserExtensionSession(result.token);
         if (result.settings) {
           localStorage.setItem("accessEaseSettings", JSON.stringify(result.settings));
           if (["en", "ta"].includes(getLang())) localStorage.setItem("accessEaseLanguage", result.settings.language);
         }
+        await syncBrowserExtensionSession(result.token, result.settings || defaultSettings());
       } else {
         const saved = JSON.parse(localStorage.getItem("accessEaseDemoUser") || "null");
         if (!saved || saved.email !== email || saved.password !== password) {
@@ -397,7 +413,13 @@ function initAI() {
   let pendingAction = null;
   let activeRecognition = null;
   let submitting = false;
+  let voiceSession = false;
+  const managedWindows = new Map();
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  function isSecureSpeechContext() {
+    return window.isSecureContext || location.hostname === "localhost" || location.hostname === "127.0.0.1";
+  }
 
   function appendMessage(text, sender = "bot") {
     const message = document.createElement("div");
@@ -408,9 +430,70 @@ function initAI() {
     return message;
   }
 
+  function speakReply(text, onComplete) {
+    if ((!defaultSettings().voiceOutput && !voiceSession) || !("speechSynthesis" in window)) {
+      onComplete?.();
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = SPEECH_LOCALES[getLang()] || "en-US";
+    utterance.onend = () => onComplete?.();
+    utterance.onerror = () => onComplete?.();
+    window.speechSynthesis.speak(utterance);
+  }
+
+  function parseConfirmation(text) {
+    const normalized = text.trim().toLowerCase().replace(/[.!?]+$/g, "").trim();
+    if (/^(yes|yeah|yep|confirm|proceed|go ahead|do it|ஆம்|ஆமாம்|சரி)$/.test(normalized)) return true;
+    if (/^(no|nope|cancel|don't|do not|நிறுத்து|வேண்டாம்|ரத்து)$/.test(normalized)) return false;
+    return null;
+  }
+
+  function extensionTabAction(action, payload) {
+    return new Promise((resolve, reject) => {
+      const requestId = crypto.randomUUID();
+      const timeout = setTimeout(() => {
+        window.removeEventListener("message", onResult);
+        reject(new Error("The browser extension did not respond. Check that it is enabled and reloaded."));
+      }, 3000);
+      function onResult(event) {
+        if (event.source !== window || event.origin !== location.origin
+          || event.data?.type !== "ACCESSEASE_TAB_ACTION_RESULT"
+          || event.data.requestId !== requestId) return;
+        clearTimeout(timeout);
+        window.removeEventListener("message", onResult);
+        if (event.data.ok) resolve();
+        else reject(new Error(event.data.error || "The browser did not confirm the tab operation."));
+      }
+      window.addEventListener("message", onResult);
+      window.postMessage({ type: "ACCESSEASE_TAB_ACTION", requestId, action, payload }, location.origin);
+    });
+  }
+
   function appendAssistantResult(result, openedWindow = null) {
     const reply = result.reply || result.message;
-    if (reply) appendMessage(reply);
+    let afterReply = null;
+    if (result.closeService) {
+      const windows = (managedWindows.get(result.closeService) || []).filter(item => !item.closed);
+      const managedWindow = windows.pop();
+      if (windows.length) managedWindows.set(result.closeService, windows);
+      else managedWindows.delete(result.closeService);
+      if (managedWindow && !managedWindow.closed) {
+        if (reply) appendMessage(reply);
+        afterReply = () => managedWindow.close();
+      } else {
+        if (reply) appendMessage(reply);
+        afterReply = () => extensionTabAction("closeManagedTab", { service: result.closeService })
+          .catch(error => {
+            const message = `I couldn't close that tab: ${error.message}`;
+            appendMessage(message);
+            speakReply(message);
+          });
+      }
+    } else if (reply) {
+      appendMessage(reply);
+    }
     if (result.status === "needs_confirmation" && result.action) {
       pendingAction = result.action;
       const controls = document.createElement("div");
@@ -425,8 +508,21 @@ function initAI() {
         const allowedHost = allowedHosts.some(host => url.hostname === host || url.hostname.endsWith(`.${host}`));
         if (url.protocol !== "https:" || !allowedHost) throw new Error("Unapproved destination.");
         if (openedWindow && !openedWindow.closed) {
-          openedWindow.opener = null;
-          openedWindow.location.assign(url.href);
+          afterReply = () => {
+            openedWindow.opener = null;
+            openedWindow.location.assign(url.href);
+            if (result.action?.service) {
+              const windows = managedWindows.get(result.action.service) || [];
+              windows.push(openedWindow);
+              managedWindows.set(result.action.service, windows);
+            }
+          };
+        } else {
+          afterReply = () => extensionTabAction("openManagedTab", { url: url.href }).catch(error => {
+            const message = `I couldn't open the new tab: ${error.message}. Use the Open link shown in the chat.`;
+            appendMessage(message);
+            speakReply(message);
+          });
         }
         const link = document.createElement("a");
         link.href = url.href;
@@ -437,27 +533,40 @@ function initAI() {
         messages.appendChild(link);
         appendMessage("If the new tab doesn't appear, select the link above.");
       } catch {
-        openedWindow?.close();
         appendMessage("The assistant returned an invalid link.");
       }
-    } else {
-      openedWindow?.close();
     }
     messages.scrollTop = messages.scrollHeight;
-    if (defaultSettings().voiceOutput && reply) {
-      if (!("speechSynthesis" in window)) {
-        appendMessage("Voice output is not supported by this browser. You can still read the reply here.");
-      } else {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(reply);
-        utterance.lang = SPEECH_LOCALES[getLang()] || "en-US";
-        utterance.onerror = event => {
-          if (event.error !== "canceled" && event.error !== "interrupted") {
-            appendMessage(`Voice output failed: ${event.error}. You can still read the reply here.`);
-          }
-        };
-        window.speechSynthesis.speak(utterance);
-      }
+    if (reply) speakReply(reply, afterReply);
+    else afterReply?.();
+  }
+
+  async function confirmPendingAction(confirm, controls, fromVoice = false) {
+    if (!pendingAction || submitting) return;
+    submitting = true;
+    controls?.querySelectorAll("button").forEach(item => item.disabled = true);
+    const action = pendingAction;
+    const opensWebsite = action.intent === "open_website" || action.intent === "search_website";
+    const openedWindow = confirm && opensWebsite && !fromVoice ? window.open("about:blank", "_blank") : null;
+    appendMessage(confirm ? "Yes" : "No", "user");
+    try {
+      const result = await API.confirmAIAction({
+        confirm,
+        action,
+        language: backendLanguage(),
+        sessionId
+      });
+      pendingAction = null;
+      controls?.remove();
+      appendAssistantResult(result, openedWindow);
+    } catch (err) {
+      openedWindow?.close();
+      controls?.querySelectorAll("button").forEach(item => item.disabled = false);
+      const message = `Sorry, I couldn't complete that request: ${err.message}`;
+      appendMessage(message);
+      speakReply(message);
+    } finally {
+      submitting = false;
     }
   }
 
@@ -476,6 +585,10 @@ function initAI() {
         } catch (err) {
           appendMessage(`Could not finish voice capture: ${err.message}. Try selecting the microphone again.`);
         }
+        return;
+      }
+      if (!isSecureSpeechContext()) {
+        appendMessage("Voice input requires a secure context such as localhost or HTTPS. Use a secure page or type your message instead.");
         return;
       }
       const recognition = new SpeechRecognition();
@@ -509,23 +622,30 @@ function initAI() {
         if (event.error === "aborted") return;
         reportedRecognitionError = true;
         if (event.error === "no-speech") {
-          appendMessage("I couldn't detect speech. Check that the correct microphone is selected and not muted, allow microphone access for the AccessEase site, and match the AccessEase language to your speech. Try again or type your message.");
+          const message = "I couldn't detect speech. Make sure the microphone is enabled and allowed for this site, then speak after the listening indicator appears. Check that AccessEase is set to the language you're speaking, or type your message.";
+          appendMessage(message);
+          speakReply(message);
           return;
         }
         const messagesByError = {
           "not-allowed": "Microphone access was blocked. Allow microphone access for the AccessEase site in your browser's site settings, then reload and try again.",
           "service-not-allowed": "Speech recognition is blocked by the browser or unavailable in this context. Try Chrome or Edge on a secure page.",
           "audio-capture": "No microphone is available. Connect or enable a microphone, then try again.",
-          "network": "Speech recognition couldn't connect to the browser's recognition service. Check your internet connection and try again."
+          "network": "Speech recognition couldn't connect to the browser's recognition service. Check your internet connection and try again.",
+          "language-not-supported": "Speech recognition does not support the selected language in this browser. Change AccessEase's language or type your message."
         };
         const message = messagesByError[event.error];
         if (message) {
           appendMessage(message);
+          speakReply(message);
         } else {
-          appendMessage(`Voice input failed: ${event.error}. You can type your message instead.`);
+          const errorMessage = `Voice input failed: ${event.error}. You can type your message instead.`;
+          appendMessage(errorMessage);
+          speakReply(errorMessage);
         }
       };
       recognition.onstart = () => {
+        voiceSession = true;
         mic.title = "Listening — select to finish";
         mic.setAttribute("aria-label", mic.title);
       };
@@ -543,6 +663,7 @@ function initAI() {
           return;
         }
         input.value = spoken;
+        form.requestSubmit();
       };
       try {
         recognition.start();
@@ -552,7 +673,9 @@ function initAI() {
         mic.setAttribute("aria-pressed", "false");
         mic.title = "Speak to assistant";
         mic.setAttribute("aria-label", mic.title);
-        appendMessage(`Could not start voice input: ${err.message}`);
+        const message = `Could not start voice input: ${err.message}`;
+        appendMessage(message);
+        speakReply(message);
       }
     });
   }
@@ -560,30 +683,20 @@ function initAI() {
     const button = e.target.closest("[data-confirm]");
     if (!button || !pendingAction) return;
     const controls = button.parentElement;
-    controls.querySelectorAll("button").forEach(item => item.disabled = true);
-    const confirm = button.dataset.confirm === "yes";
-    const openedWindow = confirm ? window.open("about:blank", "_blank") : null;
-    appendMessage(confirm ? "Yes" : "No", "user");
-    try {
-      const result = await API.confirmAIAction({
-        confirm,
-        action: pendingAction,
-        language: backendLanguage(),
-        sessionId
-      });
-      pendingAction = null;
-      controls.remove();
-      appendAssistantResult(result, openedWindow);
-    } catch (err) {
-      openedWindow?.close();
-      controls.querySelectorAll("button").forEach(item => item.disabled = false);
-      appendMessage(`Sorry, I couldn't complete that request: ${err.message}`);
-    }
+    await confirmPendingAction(button.dataset.confirm === "yes", controls);
   });
   form?.addEventListener("submit", async e => {
     e.preventDefault();
     const message = input.value.trim();
     if (!message || submitting) return;
+    if (pendingAction) {
+      const confirmation = parseConfirmation(message);
+      if (confirmation !== null) {
+        input.value = "";
+        await confirmPendingAction(confirmation, messages.querySelector(".ai-confirm"), voiceSession);
+        return;
+      }
+    }
     submitting = true;
     const submitButton = form.querySelector('button[type="submit"]');
     if (submitButton) submitButton.disabled = true;
@@ -601,7 +714,9 @@ function initAI() {
         appendMessage("I’m ready to help! Connect the backend in js/config.js to use the AI assistant.");
       }
     } catch(err) {
-      appendMessage(`Sorry, I couldn't reach the AI service: ${err.message}`);
+      const errorMessage = `Sorry, I couldn't reach the AI service: ${err.message}`;
+      appendMessage(errorMessage);
+      speakReply(errorMessage);
     } finally {
       submitting = false;
       if (submitButton) submitButton.disabled = false;

@@ -1,7 +1,7 @@
 import { config } from "../config.js";
 import type { Lang } from "../db.js";
 import { t } from "../messages.js";
-import { SERVICES, type Action } from "../safety/validateAction.js";
+import { SERVICES, type Action, type ServiceId } from "../safety/validateAction.js";
 import { closeManagedTab, goBack, listOpenTabs, openSite, scrollPage, searchSite } from "../automation/browser.js";
 import { lookupApplication } from "./demoApplicationStatus.js";
 
@@ -15,6 +15,7 @@ export interface AssistantResponse {
   /** When set (and Playwright is off), the frontend should open this URL in a new tab */
   openUrl?: string;
   closeTab?: boolean;
+  closeService?: ServiceId;
   data?: Record<string, unknown>;
 }
 

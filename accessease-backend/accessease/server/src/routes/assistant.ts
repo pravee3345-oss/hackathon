@@ -85,9 +85,6 @@ async function proceed(res: Response, action: Action, lang: Lang, sessionId: str
       steps: planSteps(action, lang),
     }, sessionId, meta);
   }
-  if (action.intent === "close_website_tab" && !config.enablePlaywright) {
-    return send(res, { status: "failed", message: t(lang, "managedBrowserDisabled"), action }, sessionId, meta);
-  }
   if (action.intent === "close_current_tab" || action.intent === "close_website_tab") {
     clearPending(sessionId);
     return send(res, {
@@ -254,6 +251,16 @@ router.post("/confirm", asyncHandler(async (req, res) => {
       message: t(lang, "closingTab"),
       action: v.action,
       closeTab: true,
+      steps: planSteps(v.action, lang),
+    }, p.data.sessionId);
+  }
+
+  if (v.action.intent === "close_website_tab" && (isBrowserExtensionRequest(req) || !config.enablePlaywright)) {
+    return send(res, {
+      status: "reply",
+      message: t(lang, "closingTab"),
+      action: v.action,
+      closeService: v.action.service,
       steps: planSteps(v.action, lang),
     }, p.data.sessionId);
   }

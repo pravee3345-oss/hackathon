@@ -32,15 +32,17 @@ In a second terminal, use VS Code + Live Server:
 3. Choose **Open with Live Server**.
 
 The AccessEase chatbot stays fixed in the lower-right corner of the app. Register and log in with an email address; the backend stores your account and accessibility preferences.
-Voice input requires a supported browser such as Chrome or Edge and microphone permission for the site currently hosting the assistant. Select the microphone to start listening, speak a command, then review or edit the recognized words in the message field and select Send. The assistant uses the selected AccessEase language, shows words as they are recognized, and explains microphone or speech-service errors. When using the floating assistant on YouTube, allow microphone access for YouTube separately from the AccessEase site.
+Voice input requires a supported browser such as Chrome or Edge and microphone permission for the site currently hosting the assistant. Use the accessible microphone button to start listening, speak a command, then select the microphone again to stop; the recognized command is sent automatically. When a confirmation is required, say “yes” or “no” after starting the microphone again. Voice input turns on spoken replies for that assistant session, independently of the voice-output preference. The assistant uses the selected AccessEase language, shows words as they are recognized, and explains microphone or speech-service errors. When using the floating assistant on YouTube, allow microphone access for YouTube separately from the AccessEase site.
+Confirmed website commands open a new tab and keep the assistant available. Say or type “close YouTube”, “close Google”, or “close Wikipedia” to close the most recently opened matching tab; unrelated tabs are not closed.
 
 ### Keep the assistant visible on web pages
 The optional Chrome/Edge extension adds the floating assistant to regular HTTP/HTTPS web pages, so you can issue commands without switching back to AccessEase. Browser-internal pages (such as `chrome://extensions`), browser store pages, and some protected pages do not allow extensions to inject content.
 
-1. Start the backend and AccessEase frontend, then log in to AccessEase.
+1. Start the backend and AccessEase frontend.
 2. Open `chrome://extensions` (or `edge://extensions`), enable **Developer mode**, and choose **Load unpacked**.
 3. Select the project's `browser-extension` folder.
-4. Copy the extension ID shown in the extensions page into `CORS_EXTENSION_ID` in the backend `server/.env`, then restart the backend.
-5. Reload the AccessEase page so the extension can sync your existing login, then reload the web tab where you want the assistant. The AccessEase assistant appears in the page's lower-right corner.
+4. In the extension's **Details** page, set **Site access** to **On all sites** (or allow each site you want to use).
+5. Copy the extension ID shown in `chrome://extensions` (or `edge://extensions`) into `CORS_EXTENSION_ID` in the backend `server/.env`, then restart the backend.
+6. Reload the AccessEase page and the website tab. Extension chat and tab controls work without an AccessEase login; an AccessEase login is only needed for account-specific preferences.
 
-The extension receives your AccessEase login from the local app and clears it when you log out. It sends visible main-page text (up to 9,000 characters) with assistant requests so the configured AI provider can answer questions about the current page. Configure `GROQ_API_KEY` or `GEMINI_API_KEY` in the backend `server/.env` for AI-based screen questions. The extension uses speech recognition and spoken replies when supported by the browser, asks before navigating to a supported site, and asks before closing its current web tab.
+The extension sends visible main-page text (up to 9,000 characters) with assistant requests so the configured AI provider can answer questions about the current page. Configure `GROQ_API_KEY` or `GEMINI_API_KEY` in the backend `server/.env` for AI-based screen questions. The extension uses speech recognition and spoken replies when supported by the browser, asks before opening a supported site in a new tab, and can close the current web tab or a supported tab opened by AccessEase. It does not close unrelated browser tabs.

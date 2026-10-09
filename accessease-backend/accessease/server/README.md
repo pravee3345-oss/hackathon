@@ -15,7 +15,7 @@ Optional:
 
 Website actions ask for confirmation before opening, searching, or closing a tab. With Playwright enabled, AccessEase keeps one browser and context alive for the server lifetime, opens websites in separate managed tabs, and supports “close YouTube”, “close the current tab”, and “list open tabs”. It only closes pages that AccessEase opened; a missing website tab is reported as not found. Voice transcripts use the same backend commands as typed messages.
 
-To keep the assistant on the user's current YouTube, Google, or Wikipedia tab and control that tab, load the frontend's `browser-extension` folder as an unpacked Chrome/Edge extension. Set `CORS_EXTENSION_ID` in `.env` to the ID shown on the browser extensions page, then restart the backend. Its confirmation request returns an allow-listed URL for the extension to navigate in that same tab; page questions include visible page text and require a configured AI key.
+To use the assistant on other websites, load the frontend's `browser-extension` folder as an unpacked Chrome/Edge extension and allow site access for the sites you use (or all sites). Set `CORS_EXTENSION_ID` in `.env` to the ID shown on the browser extensions page, then restart the backend. The extension can open allow-listed sites in a new tab and close its current supported site tab or an AccessEase-opened tab. Assistant chat endpoints use optional authentication; logging in is not required for chat or tab control.
 
 ## Connect the frontend
 In `js/config.js`: `BASE_URL: "http://localhost:5001/api"`, `USE_BACKEND: true`.
